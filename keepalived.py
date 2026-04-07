@@ -72,6 +72,8 @@ VRRP_STATES = {0: "INIT", 1: "BACKUP", 2: "MASTER", 3: "FAULT"}
 # Seconds to wait for keepalived to write the JSON dump after signalling it.
 JSON_DUMP_TIMEOUT = 5.0
 
+METRIC_PREFIX = "keepalived_vrrp_"
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -85,27 +87,22 @@ def get_pid():
     try:
         return int(KEEPALIVED_PID_FILE.read_text().strip())
     except FileNotFoundError:
-        _die(f"keepalived PID file not found: {KEEPALIVED_PID_FILE}")
+        print(f"WARNING: keepalived not running ({KEEPALIVED_PID_FILE} not found)",
+              file=sys.stderr)
+        sys.exit(0)
     except ValueError as exc:
         _die(f"Invalid content in {KEEPALIVED_PID_FILE}: {exc}")
 
 
 def get_json_signum():
     """Return the signal number keepalived uses for JSON dumps."""
-    try:
-        result = subprocess.run(
-            ["keepalived", "--signum=JSON"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return int(result.stdout.strip())
-    except FileNotFoundError:
-        _die("keepalived binary not found in PATH")
-    except subprocess.CalledProcessError as exc:
-        _die(f"keepalived --signum=JSON failed: {exc.stderr.strip()}")
-    except ValueError as exc:
-        _die(f"Cannot parse signal number from keepalived --signum=JSON: {exc}")
+    result = subprocess.run(
+        ["keepalived", "--signum=JSON"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return int(result.stdout.strip())
 
 
 def request_json_dump(pid, signum):
@@ -122,7 +119,8 @@ def request_json_dump(pid, signum):
     try:
         os.kill(pid, signum)
     except ProcessLookupError:
-        _die(f"keepalived process (PID {pid}) not found")
+        print(f"WARNING: keepalived not running (PID {pid} not found)", file=sys.stderr)
+        sys.exit(0)
     except PermissionError:
         _die(f"No permission to signal keepalived process (PID {pid})")
 
@@ -159,17 +157,14 @@ def get_instances(data):
 
 # ── output ────────────────────────────────────────────────────────────────────
 
-def labels_str(labels):
-    return ",".join(f'{k}="{v}"' for k, v in labels.items())
-
-
 def emit(name, help_text, metric_type, samples):
     """Print HELP, TYPE, and sample lines for one metric family."""
     print(f"# HELP {name} {help_text}")
     print(f"# TYPE {name} {metric_type}")
     for lbl, value in samples:
         if lbl:
-            print(f"{name}{{{labels_str(lbl)}}} {value}")
+            lbl_str = ",".join(f'{k}="{v}"' for k, v in lbl.items())
+            print(f"{name}{{{lbl_str}}} {value}")
         else:
             print(f"{name} {value}")
 
@@ -251,25 +246,25 @@ def main():
             pri_zero_sent_s.append((base_lbl, s.get("pri_zero_sent", 0)))
 
     emit(
-        "keepalived_vrrp_state",
+        METRIC_PREFIX + "state",
         "Current keepalived VRRP state (0=INIT, 1=BACKUP, 2=MASTER, 3=FAULT).",
         "gauge",
         state_s,
     )
     emit(
-        "keepalived_vrrp_info",
+        METRIC_PREFIX + "info",
         "keepalived VRRP instance metadata. Always 1.",
         "gauge",
         info_s,
     )
     emit(
-        "keepalived_vrrp_priority_base",
+        METRIC_PREFIX + "priority_base",
         "Configured keepalived VRRP base priority.",
         "gauge",
         prio_base_s,
     )
     emit(
-        "keepalived_vrrp_priority_effective",
+        METRIC_PREFIX + "priority_effective",
         "Current effective keepalived VRRP priority "
         "(may be lower than base when tracking scripts reduce it).",
         "gauge",
@@ -277,13 +272,13 @@ def main():
     )
     if last_trans_s:
         emit(
-            "keepalived_vrrp_last_transition_timestamp_seconds",
+            METRIC_PREFIX + "last_transition_timestamp_seconds",
             "Unix timestamp of the last keepalived VRRP state transition.",
             "gauge",
             last_trans_s,
         )
     emit(
-        "keepalived_vrrp_advert_interval_seconds",
+        METRIC_PREFIX + "advert_interval_seconds",
         "keepalived VRRP advertisement interval in seconds.",
         "gauge",
         advert_int_s,
@@ -291,74 +286,74 @@ def main():
 
     if advert_rcvd_s:
         emit(
-            "keepalived_vrrp_advertisements_received_total",
+            METRIC_PREFIX + "advertisements_received_total",
             "Total keepalived VRRP advertisement packets received.",
             "counter",
             advert_rcvd_s,
         )
         emit(
-            "keepalived_vrrp_advertisements_sent_total",
+            METRIC_PREFIX + "advertisements_sent_total",
             "Total keepalived VRRP advertisement packets sent.",
             "counter",
             advert_sent_s,
         )
         emit(
-            "keepalived_vrrp_became_master_total",
+            METRIC_PREFIX + "became_master_total",
             "Total number of times this keepalived VRRP instance became MASTER.",
             "counter",
             became_master_s,
         )
         emit(
-            "keepalived_vrrp_released_master_total",
+            METRIC_PREFIX + "released_master_total",
             "Total number of times this keepalived VRRP instance released the MASTER role.",
             "counter",
             released_master_s,
         )
         emit(
-            "keepalived_vrrp_packet_len_errors_total",
+            METRIC_PREFIX + "packet_len_errors_total",
             "Total keepalived VRRP packets received with an invalid length.",
             "counter",
             pkt_len_err_s,
         )
         emit(
-            "keepalived_vrrp_advert_interval_errors_total",
+            METRIC_PREFIX + "advert_interval_errors_total",
             "Total keepalived VRRP packets received with a mismatched advertisement interval.",
             "counter",
             advert_int_err_s,
         )
         emit(
-            "keepalived_vrrp_ip_ttl_errors_total",
+            METRIC_PREFIX + "ip_ttl_errors_total",
             "Total keepalived VRRP packets received with an incorrect IP TTL.",
             "counter",
             ip_ttl_err_s,
         )
         emit(
-            "keepalived_vrrp_invalid_type_received_total",
+            METRIC_PREFIX + "invalid_type_received_total",
             "Total keepalived VRRP packets received with an invalid type field.",
             "counter",
             invalid_type_s,
         )
         emit(
-            "keepalived_vrrp_addr_list_errors_total",
+            METRIC_PREFIX + "addr_list_errors_total",
             "Total keepalived VRRP packets received with a mismatched address list.",
             "counter",
             addr_list_err_s,
         )
         emit(
-            "keepalived_vrrp_invalid_authtype_total",
+            METRIC_PREFIX + "invalid_authtype_total",
             "Total keepalived VRRP packets received with an invalid authentication type.",
             "counter",
             invalid_auth_s,
         )
         emit(
-            "keepalived_vrrp_priority_zero_received_total",
+            METRIC_PREFIX + "priority_zero_received_total",
             "Total keepalived VRRP packets received with priority zero "
             "(used to signal MASTER resignation).",
             "counter",
             pri_zero_rcvd_s,
         )
         emit(
-            "keepalived_vrrp_priority_zero_sent_total",
+            METRIC_PREFIX + "priority_zero_sent_total",
             "Total keepalived VRRP packets sent with priority zero "
             "(used to signal MASTER resignation).",
             "counter",
