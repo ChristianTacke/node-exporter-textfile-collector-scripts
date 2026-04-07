@@ -26,7 +26,7 @@ Metrics produced (per VRRP instance):
   keepalived_vrrp_state                              gauge   0=INIT 1=BACKUP 2=MASTER 3=FAULT
   keepalived_vrrp_info                               gauge   always 1; labels carry instance info
   keepalived_vrrp_priority_base                      gauge   configured base priority
-  keepalived_vrrp_priority_effective                 gauge   effective priority (lower when tracking
+  keepalived_vrrp_priority_effective                 gauge   effective priority (may be reduced by
                                                              tracking scripts)
   keepalived_vrrp_last_transition_timestamp_seconds  gauge   Unix timestamp of last state transition
   keepalived_vrrp_advert_interval_seconds            gauge   VRRP advertisement interval
