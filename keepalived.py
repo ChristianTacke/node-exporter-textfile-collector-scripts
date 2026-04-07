@@ -66,9 +66,6 @@ KEEPALIVED_JSON_FILE = Path(
     os.environ.get("KEEPALIVED_JSON_FILE", "/tmp/keepalived.json")
 )
 
-# Keepalived internal VRRP state enum (vrrp.h)
-VRRP_STATES = {0: "INIT", 1: "BACKUP", 2: "MASTER", 3: "FAULT"}
-
 # Seconds to wait for keepalived to write the JSON dump after signalling it.
 JSON_DUMP_TIMEOUT = 5.0
 
@@ -168,11 +165,8 @@ def emit(name, help_text, metric_type, samples):
     print(f"# HELP {full_name} {help_text}")
     print(f"# TYPE {full_name} {metric_type}")
     for lbl, value in samples:
-        if lbl:
-            lbl_str = ",".join(f'{k}="{v}"' for k, v in lbl.items())
-            print(f"{full_name}{{{lbl_str}}} {value}")
-        else:
-            print(f"{full_name} {value}")
+        lbl_str = ",".join(f'{k}="{v}"' for k, v in lbl.items())
+        print(f"{full_name}{{{lbl_str}}} {value}")
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
