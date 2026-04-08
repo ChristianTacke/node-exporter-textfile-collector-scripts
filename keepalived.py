@@ -154,14 +154,20 @@ def get_instances(data):
 
 # ── output ────────────────────────────────────────────────────────────────────
 
-def emit(name, help_text, metric_type, samples):
+def emit(name, help_text, samples):
     """Print HELP, TYPE, and sample lines for one metric family.
+
+    The metric type is inferred from the name: names ending in ``_total``
+    are ``counter``; everything else is ``gauge``.  This follows the
+    Prometheus naming convention and makes it impossible for the type to
+    diverge from the name.
 
     Does nothing when samples is empty (avoids bare HELP/TYPE headers).
     """
     if not samples:
         return
     full_name = METRIC_NAMESPACE + name
+    metric_type = "counter" if name.endswith("_total") else "gauge"
     print(f"# HELP {full_name} {help_text}")
     print(f"# TYPE {full_name} {metric_type}")
     for lbl, value in samples:
@@ -248,112 +254,94 @@ def main():
     emit(
         "state",
         "Current keepalived VRRP state (0=INIT, 1=BACKUP, 2=MASTER, 3=FAULT).",
-        "gauge",
         state_s,
     )
     emit(
         "info",
         "keepalived VRRP instance metadata. Always 1.",
-        "gauge",
         info_s,
     )
     emit(
         "priority_base",
         "Configured keepalived VRRP base priority.",
-        "gauge",
         prio_base_s,
     )
     emit(
         "priority_effective",
         "Current effective keepalived VRRP priority "
         "(may be lower than base when tracking scripts reduce it).",
-        "gauge",
         prio_eff_s,
     )
     emit(
         "last_transition_timestamp_seconds",
         "Unix timestamp of the last keepalived VRRP state transition.",
-        "gauge",
         last_trans_s,
     )
     emit(
         "advert_interval_seconds",
         "keepalived VRRP advertisement interval in seconds.",
-        "gauge",
         advert_int_s,
     )
     emit(
         "advertisements_received_total",
         "Total keepalived VRRP advertisement packets received.",
-        "counter",
         advert_rcvd_s,
     )
     emit(
         "advertisements_sent_total",
         "Total keepalived VRRP advertisement packets sent.",
-        "counter",
         advert_sent_s,
     )
     emit(
         "became_master_total",
         "Total number of times this keepalived VRRP instance became MASTER.",
-        "counter",
         became_master_s,
     )
     emit(
         "released_master_total",
         "Total number of times this keepalived VRRP instance released the MASTER role.",
-        "counter",
         released_master_s,
     )
     emit(
         "packet_len_errors_total",
         "Total keepalived VRRP packets received with an invalid length.",
-        "counter",
         pkt_len_err_s,
     )
     emit(
         "advert_interval_errors_total",
         "Total keepalived VRRP packets received with a mismatched advertisement interval.",
-        "counter",
         advert_int_err_s,
     )
     emit(
         "ip_ttl_errors_total",
         "Total keepalived VRRP packets received with an incorrect IP TTL.",
-        "counter",
         ip_ttl_err_s,
     )
     emit(
         "invalid_type_received_total",
         "Total keepalived VRRP packets received with an invalid type field.",
-        "counter",
         invalid_type_s,
     )
     emit(
         "addr_list_errors_total",
         "Total keepalived VRRP packets received with a mismatched address list.",
-        "counter",
         addr_list_err_s,
     )
     emit(
         "invalid_authtype_total",
         "Total keepalived VRRP packets received with an invalid authentication type.",
-        "counter",
         invalid_auth_s,
     )
     emit(
         "priority_zero_received_total",
         "Total keepalived VRRP packets received with priority zero "
         "(used to signal MASTER resignation).",
-        "counter",
         pri_zero_rcvd_s,
     )
     emit(
         "priority_zero_sent_total",
         "Total keepalived VRRP packets sent with priority zero "
         "(used to signal MASTER resignation).",
-        "counter",
         pri_zero_sent_s,
     )
 
