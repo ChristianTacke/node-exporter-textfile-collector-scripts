@@ -209,33 +209,25 @@ def main():
         s = instance.get("stats")
 
         name = d.get("iname", "unknown")
-        state = int(d.get("state", 0))
-        vrid = d.get("vrid", "")
-        # Prefer the real interface name; fall back to the VMAC interface.
-        intf = d.get("ifp_ifname") or d.get("vmac_ifname", "")
-        base_priority = d.get("base_priority", 0)
-        effective_priority = d.get("effective_priority", 0)
         last_transition = d.get("last_transition", 0.0)
-        adver_int = d.get("adver_int", 0.0)
-        version = d.get("version", 0)
-        nopreempt = int(bool(d.get("nopreempt", False)))
 
         base_lbl = {"name": name}
         info_lbl = {
             "name": name,
-            "intf": intf,
-            "vrid": str(vrid),
-            "version": str(version),
-            "nopreempt": str(nopreempt),
+            # Prefer the real interface name; fall back to the VMAC interface.
+            "intf": d.get("ifp_ifname") or d.get("vmac_ifname", ""),
+            "vrid": str(d.get("vrid", "")),
+            "version": str(d.get("version", 0)),
+            "nopreempt": str(int(bool(d.get("nopreempt", False)))),
         }
 
-        state_s.append((base_lbl, state))
+        state_s.append((base_lbl, int(d.get("state", 0))))
         info_s.append((info_lbl, 1))
-        prio_base_s.append((base_lbl, base_priority))
-        prio_eff_s.append((base_lbl, effective_priority))
+        prio_base_s.append((base_lbl, d.get("base_priority", 0)))
+        prio_eff_s.append((base_lbl, d.get("effective_priority", 0)))
         if last_transition:
             last_trans_s.append((base_lbl, last_transition))
-        advert_int_s.append((base_lbl, adver_int))
+        advert_int_s.append((base_lbl, d.get("adver_int", 0.0)))
 
         if s is not None:
             advert_rcvd_s.append((base_lbl, s.get("advert_rcvd", 0)))
