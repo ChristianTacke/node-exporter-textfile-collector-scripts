@@ -229,19 +229,22 @@ def main():
             last_trans_s.append((base_lbl, last_transition))
         advert_int_s.append((base_lbl, d.get("adver_int", 0.0)))
 
+        def add(acc, src, key):
+            acc.append((base_lbl, src.get(key, 0)))
+
         if s is not None:
-            advert_rcvd_s.append((base_lbl, s.get("advert_rcvd", 0)))
-            advert_sent_s.append((base_lbl, s.get("advert_sent", 0)))
-            became_master_s.append((base_lbl, s.get("become_master", 0)))
-            released_master_s.append((base_lbl, s.get("release_master", 0)))
-            pkt_len_err_s.append((base_lbl, s.get("packet_len_err", 0)))
-            advert_int_err_s.append((base_lbl, s.get("advert_interval_err", 0)))
-            ip_ttl_err_s.append((base_lbl, s.get("ip_ttl_err", 0)))
-            invalid_type_s.append((base_lbl, s.get("invalid_type_rcvd", 0)))
-            addr_list_err_s.append((base_lbl, s.get("addr_list_err", 0)))
-            invalid_auth_s.append((base_lbl, s.get("invalid_authtype", 0)))
-            pri_zero_rcvd_s.append((base_lbl, s.get("pri_zero_rcvd", 0)))
-            pri_zero_sent_s.append((base_lbl, s.get("pri_zero_sent", 0)))
+            add(advert_rcvd_s, s, "advert_rcvd")
+            add(advert_sent_s, s, "advert_sent")
+            add(became_master_s, s, "become_master")
+            add(released_master_s, s, "release_master")
+            add(pkt_len_err_s, s, "packet_len_err")
+            add(advert_int_err_s, s, "advert_interval_err")
+            add(ip_ttl_err_s, s, "ip_ttl_err")
+            add(invalid_type_s, s, "invalid_type_rcvd")
+            add(addr_list_err_s, s, "addr_list_err")
+            add(invalid_auth_s, s, "invalid_authtype")
+            add(pri_zero_rcvd_s, s, "pri_zero_rcvd")
+            add(pri_zero_sent_s, s, "pri_zero_sent")
 
     emit(
         "state",
