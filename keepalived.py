@@ -221,30 +221,30 @@ def main():
             "nopreempt": str(int(bool(d.get("nopreempt", False)))),
         }
 
+        def add(src, acc, key):
+            acc.append((base_lbl, src.get(key, 0)))
+
         state_s.append((base_lbl, int(d.get("state", 0))))
         info_s.append((info_lbl, 1))
-        prio_base_s.append((base_lbl, d.get("base_priority", 0)))
-        prio_eff_s.append((base_lbl, d.get("effective_priority", 0)))
+        add(d, prio_base_s, "base_priority")
+        add(d, prio_eff_s, "effective_priority")
         if last_transition:
             last_trans_s.append((base_lbl, last_transition))
         advert_int_s.append((base_lbl, d.get("adver_int", 0.0)))
 
-        def add(acc, src, key):
-            acc.append((base_lbl, src.get(key, 0)))
-
         if s is not None:
-            add(advert_rcvd_s, s, "advert_rcvd")
-            add(advert_sent_s, s, "advert_sent")
-            add(became_master_s, s, "become_master")
-            add(released_master_s, s, "release_master")
-            add(pkt_len_err_s, s, "packet_len_err")
-            add(advert_int_err_s, s, "advert_interval_err")
-            add(ip_ttl_err_s, s, "ip_ttl_err")
-            add(invalid_type_s, s, "invalid_type_rcvd")
-            add(addr_list_err_s, s, "addr_list_err")
-            add(invalid_auth_s, s, "invalid_authtype")
-            add(pri_zero_rcvd_s, s, "pri_zero_rcvd")
-            add(pri_zero_sent_s, s, "pri_zero_sent")
+            add(s, advert_rcvd_s, "advert_rcvd")
+            add(s, advert_sent_s, "advert_sent")
+            add(s, became_master_s, "become_master")
+            add(s, released_master_s, "release_master")
+            add(s, pkt_len_err_s, "packet_len_err")
+            add(s, advert_int_err_s, "advert_interval_err")
+            add(s, ip_ttl_err_s, "ip_ttl_err")
+            add(s, invalid_type_s, "invalid_type_rcvd")
+            add(s, addr_list_err_s, "addr_list_err")
+            add(s, invalid_auth_s, "invalid_authtype")
+            add(s, pri_zero_rcvd_s, "pri_zero_rcvd")
+            add(s, pri_zero_sent_s, "pri_zero_sent")
 
     emit(
         "state",
