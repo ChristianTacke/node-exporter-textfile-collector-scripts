@@ -53,6 +53,7 @@ import json
 import os
 import sys
 import time
+from collections import defaultdict
 from pathlib import Path
 from subprocess import run
 
@@ -158,20 +159,24 @@ def get_instances(data):
 def emit(samples, name, help_text):
     """Print HELP, TYPE, and sample lines for one metric family.
 
+    ``samples`` is the shared ``defaultdict(list)``; ``name`` is both the
+    metric short name and the key into that dict.
+
     The metric type is inferred from the name: names ending in ``_total``
     are ``counter``; everything else is ``gauge``.  This follows the
     Prometheus naming convention and makes it impossible for the type to
     diverge from the name.
 
-    Does nothing when samples is empty (avoids bare HELP/TYPE headers).
+    Does nothing when the sample list is empty (avoids bare HELP/TYPE headers).
     """
-    if not samples:
+    data = samples[name]
+    if not data:
         return
     full_name = METRIC_NAMESPACE + name
     metric_type = "counter" if name.endswith("_total") else "gauge"
     print(f"# HELP {full_name} {help_text}")
     print(f"# TYPE {full_name} {metric_type}")
-    for lbl, value in samples:
+    for lbl, value in data:
         lbl_str = ",".join(f'{k}="{v}"' for k, v in lbl.items())
         print(f"{full_name}{{{lbl_str}}} {value}")
 
@@ -185,24 +190,7 @@ def main():
 
     # Accumulate samples per metric family so we can emit each family's HELP
     # and TYPE header exactly once before its samples.
-    state_s = []
-    info_s = []
-    prio_base_s = []
-    prio_eff_s = []
-    last_trans_s = []
-    advert_int_s = []
-    advert_rcvd_s = []
-    advert_sent_s = []
-    became_master_s = []
-    released_master_s = []
-    pkt_len_err_s = []
-    advert_int_err_s = []
-    ip_ttl_err_s = []
-    invalid_type_s = []
-    addr_list_err_s = []
-    invalid_auth_s = []
-    pri_zero_rcvd_s = []
-    pri_zero_sent_s = []
+    samples = defaultdict(list)
 
     for instance in get_instances(data):
         d = instance.get("data", {})
@@ -221,69 +209,69 @@ def main():
             "nopreempt": str(int(bool(d.get("nopreempt", False)))),
         }
 
-        def record(acc, src, key):
-            acc.append((base_lbl, int(src.get(key, 0))))
-
-        info_s.append((info_lbl, 1))
+        samples["info"].append((info_lbl, 1))
         if last_transition:
-            last_trans_s.append((base_lbl, last_transition))
-        advert_int_s.append((base_lbl, d.get("adver_int", 0.0)))
+            samples["last_transition_timestamp_seconds"].append((base_lbl, last_transition))
+        samples["advert_interval_seconds"].append((base_lbl, d.get("adver_int", 0.0)))
 
-        record(state_s, d, "state")
-        record(prio_base_s, d, "base_priority")
-        record(prio_eff_s, d, "effective_priority")
+        def record(metric, src, key):
+            samples[metric].append((base_lbl, int(src.get(key, 0))))
+
+        record("state", d, "state")
+        record("priority_base", d, "base_priority")
+        record("priority_effective", d, "effective_priority")
 
         if s is not None:
-            record(advert_rcvd_s, s, "advert_rcvd")
-            record(advert_sent_s, s, "advert_sent")
-            record(became_master_s, s, "become_master")
-            record(released_master_s, s, "release_master")
-            record(pkt_len_err_s, s, "packet_len_err")
-            record(advert_int_err_s, s, "advert_interval_err")
-            record(ip_ttl_err_s, s, "ip_ttl_err")
-            record(invalid_type_s, s, "invalid_type_rcvd")
-            record(addr_list_err_s, s, "addr_list_err")
-            record(invalid_auth_s, s, "invalid_authtype")
-            record(pri_zero_rcvd_s, s, "pri_zero_rcvd")
-            record(pri_zero_sent_s, s, "pri_zero_sent")
+            record("advertisements_received_total", s, "advert_rcvd")
+            record("advertisements_sent_total", s, "advert_sent")
+            record("became_master_total", s, "become_master")
+            record("released_master_total", s, "release_master")
+            record("packet_len_errors_total", s, "packet_len_err")
+            record("advert_interval_errors_total", s, "advert_interval_err")
+            record("ip_ttl_errors_total", s, "ip_ttl_err")
+            record("invalid_type_received_total", s, "invalid_type_rcvd")
+            record("addr_list_errors_total", s, "addr_list_err")
+            record("invalid_authtype_total", s, "invalid_authtype")
+            record("priority_zero_received_total", s, "pri_zero_rcvd")
+            record("priority_zero_sent_total", s, "pri_zero_sent")
 
-    emit(state_s, "state",
+    emit(samples, "state",
          "Current keepalived VRRP state (0=INIT, 1=BACKUP, 2=MASTER, 3=FAULT).")
-    emit(info_s, "info",
+    emit(samples, "info",
          "keepalived VRRP instance metadata. Always 1.")
-    emit(prio_base_s, "priority_base",
+    emit(samples, "priority_base",
          "Configured keepalived VRRP base priority.")
-    emit(prio_eff_s, "priority_effective",
+    emit(samples, "priority_effective",
          "Current effective keepalived VRRP priority "
          "(may be lower than base when tracking scripts reduce it).")
-    emit(last_trans_s, "last_transition_timestamp_seconds",
+    emit(samples, "last_transition_timestamp_seconds",
          "Unix timestamp of the last keepalived VRRP state transition.")
-    emit(advert_int_s, "advert_interval_seconds",
+    emit(samples, "advert_interval_seconds",
          "keepalived VRRP advertisement interval in seconds.")
-    emit(advert_rcvd_s, "advertisements_received_total",
+    emit(samples, "advertisements_received_total",
          "Total keepalived VRRP advertisement packets received.")
-    emit(advert_sent_s, "advertisements_sent_total",
+    emit(samples, "advertisements_sent_total",
          "Total keepalived VRRP advertisement packets sent.")
-    emit(became_master_s, "became_master_total",
+    emit(samples, "became_master_total",
          "Total number of times this keepalived VRRP instance became MASTER.")
-    emit(released_master_s, "released_master_total",
+    emit(samples, "released_master_total",
          "Total number of times this keepalived VRRP instance released the MASTER role.")
-    emit(pkt_len_err_s, "packet_len_errors_total",
+    emit(samples, "packet_len_errors_total",
          "Total keepalived VRRP packets received with an invalid length.")
-    emit(advert_int_err_s, "advert_interval_errors_total",
+    emit(samples, "advert_interval_errors_total",
          "Total keepalived VRRP packets received with a mismatched advertisement interval.")
-    emit(ip_ttl_err_s, "ip_ttl_errors_total",
+    emit(samples, "ip_ttl_errors_total",
          "Total keepalived VRRP packets received with an incorrect IP TTL.")
-    emit(invalid_type_s, "invalid_type_received_total",
+    emit(samples, "invalid_type_received_total",
          "Total keepalived VRRP packets received with an invalid type field.")
-    emit(addr_list_err_s, "addr_list_errors_total",
+    emit(samples, "addr_list_errors_total",
          "Total keepalived VRRP packets received with a mismatched address list.")
-    emit(invalid_auth_s, "invalid_authtype_total",
+    emit(samples, "invalid_authtype_total",
          "Total keepalived VRRP packets received with an invalid authentication type.")
-    emit(pri_zero_rcvd_s, "priority_zero_received_total",
+    emit(samples, "priority_zero_received_total",
          "Total keepalived VRRP packets received with priority zero "
          "(used to signal MASTER resignation).")
-    emit(pri_zero_sent_s, "priority_zero_sent_total",
+    emit(samples, "priority_zero_sent_total",
          "Total keepalived VRRP packets sent with priority zero "
          "(used to signal MASTER resignation).")
 
