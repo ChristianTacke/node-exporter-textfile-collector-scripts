@@ -155,7 +155,7 @@ def get_instances(data):
 
 # ── output ────────────────────────────────────────────────────────────────────
 
-def emit(name, help_text, samples):
+def emit(samples, name, help_text):
     """Print HELP, TYPE, and sample lines for one metric family.
 
     The metric type is inferred from the name: names ending in ``_total``
@@ -248,97 +248,97 @@ def main():
             record(pri_zero_sent_s, s, "pri_zero_sent")
 
     emit(
+        state_s,
         "state",
         "Current keepalived VRRP state (0=INIT, 1=BACKUP, 2=MASTER, 3=FAULT).",
-        state_s,
     )
     emit(
+        info_s,
         "info",
         "keepalived VRRP instance metadata. Always 1.",
-        info_s,
     )
     emit(
+        prio_base_s,
         "priority_base",
         "Configured keepalived VRRP base priority.",
-        prio_base_s,
     )
     emit(
+        prio_eff_s,
         "priority_effective",
         "Current effective keepalived VRRP priority "
         "(may be lower than base when tracking scripts reduce it).",
-        prio_eff_s,
     )
     emit(
+        last_trans_s,
         "last_transition_timestamp_seconds",
         "Unix timestamp of the last keepalived VRRP state transition.",
-        last_trans_s,
     )
     emit(
+        advert_int_s,
         "advert_interval_seconds",
         "keepalived VRRP advertisement interval in seconds.",
-        advert_int_s,
     )
     emit(
+        advert_rcvd_s,
         "advertisements_received_total",
         "Total keepalived VRRP advertisement packets received.",
-        advert_rcvd_s,
     )
     emit(
+        advert_sent_s,
         "advertisements_sent_total",
         "Total keepalived VRRP advertisement packets sent.",
-        advert_sent_s,
     )
     emit(
+        became_master_s,
         "became_master_total",
         "Total number of times this keepalived VRRP instance became MASTER.",
-        became_master_s,
     )
     emit(
+        released_master_s,
         "released_master_total",
         "Total number of times this keepalived VRRP instance released the MASTER role.",
-        released_master_s,
     )
     emit(
+        pkt_len_err_s,
         "packet_len_errors_total",
         "Total keepalived VRRP packets received with an invalid length.",
-        pkt_len_err_s,
     )
     emit(
+        advert_int_err_s,
         "advert_interval_errors_total",
         "Total keepalived VRRP packets received with a mismatched advertisement interval.",
-        advert_int_err_s,
     )
     emit(
+        ip_ttl_err_s,
         "ip_ttl_errors_total",
         "Total keepalived VRRP packets received with an incorrect IP TTL.",
-        ip_ttl_err_s,
     )
     emit(
+        invalid_type_s,
         "invalid_type_received_total",
         "Total keepalived VRRP packets received with an invalid type field.",
-        invalid_type_s,
     )
     emit(
+        addr_list_err_s,
         "addr_list_errors_total",
         "Total keepalived VRRP packets received with a mismatched address list.",
-        addr_list_err_s,
     )
     emit(
+        invalid_auth_s,
         "invalid_authtype_total",
         "Total keepalived VRRP packets received with an invalid authentication type.",
-        invalid_auth_s,
     )
     emit(
+        pri_zero_rcvd_s,
         "priority_zero_received_total",
         "Total keepalived VRRP packets received with priority zero "
         "(used to signal MASTER resignation).",
-        pri_zero_rcvd_s,
     )
     emit(
+        pri_zero_sent_s,
         "priority_zero_sent_total",
         "Total keepalived VRRP packets sent with priority zero "
         "(used to signal MASTER resignation).",
-        pri_zero_sent_s,
     )
 
 
