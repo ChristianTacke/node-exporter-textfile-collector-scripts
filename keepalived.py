@@ -79,14 +79,17 @@ def _die(message):
     sys.exit(1)
 
 
+def _warn_exit(message):
+    print(f"WARNING: {message}", file=sys.stderr)
+    sys.exit(0)
+
+
 def get_pid():
     """Return the keepalived process PID."""
     try:
         return int(KEEPALIVED_PID_FILE.read_text().strip())
     except FileNotFoundError:
-        print(f"WARNING: keepalived not running ({KEEPALIVED_PID_FILE} not found)",
-              file=sys.stderr)
-        sys.exit(0)
+        _warn_exit(f"keepalived not running ({KEEPALIVED_PID_FILE} not found)")
     except ValueError as exc:
         _die(f"Invalid content in {KEEPALIVED_PID_FILE}: {exc}")
 
@@ -107,17 +110,15 @@ def request_json_dump(pid, signum):
 
     Waits up to JSON_DUMP_TIMEOUT seconds for the dump file to be updated.
     """
-    mtime_before = (
-        KEEPALIVED_JSON_FILE.stat().st_mtime
-        if KEEPALIVED_JSON_FILE.exists()
-        else 0.0
-    )
+    try:
+        mtime_before = KEEPALIVED_JSON_FILE.stat().st_mtime
+    except FileNotFoundError:
+        mtime_before = 0.0
 
     try:
         os.kill(pid, signum)
     except ProcessLookupError:
-        print(f"WARNING: keepalived not running (PID {pid} not found)", file=sys.stderr)
-        sys.exit(0)
+        _warn_exit(f"keepalived not running (PID {pid} not found)")
     except PermissionError:
         _die(f"No permission to signal keepalived process (PID {pid})")
 
@@ -181,7 +182,6 @@ def main():
     pid = get_pid()
     signum = get_json_signum()
     data = request_json_dump(pid, signum)
-    instances = get_instances(data)
 
     # Accumulate samples per metric family so we can emit each family's HELP
     # and TYPE header exactly once before its samples.
@@ -204,7 +204,7 @@ def main():
     pri_zero_rcvd_s = []
     pri_zero_sent_s = []
 
-    for instance in instances:
+    for instance in get_instances(data):
         d = instance.get("data", {})
         s = instance.get("stats")
 
